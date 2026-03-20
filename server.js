@@ -44,6 +44,16 @@ app.use((req, res, next) => {
 });
 
 // ─── HEALTH ────────────────────────────────────────────
+// Serve frontend
+// - Local LAN : http://192.168.x.x:4001/
+// - Tunnel    : https://bserver.thangmotsach.com/in_label/
+app.get(['/in_label', '/in_label/'], (req, res) =>
+  res.sendFile(path.join(__dirname, 'index.html'))
+);
+app.get(['/', '/index.html'], (req, res) =>
+  res.sendFile(path.join(__dirname, 'index.html'))
+);
+
 app.get('/in_label/health', (req, res) => {
   exec(`lpstat -p "${PRINTER}" 2>&1`, (err, out) => {
     res.json({
