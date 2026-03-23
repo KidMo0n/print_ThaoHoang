@@ -603,7 +603,7 @@ function draw(canvas, d, logo){
   }
 
   // ── FOOTER: neo đáy phải — chỉ khi có logo ──
-  const fH = logo ? 58 : 0;   // đủ chỗ cho 2 dòng text + padding
+  const fH = logo ? 68 : 0;   // đủ chỗ cho 2 dòng text + padding
   const fY = B - fH;
   if(logo){
     // Đường kẻ trên footer
@@ -624,7 +624,7 @@ function draw(canvas, d, logo){
     const sz  = fitSz(ctx, txt, rw, 46, 24, 'bold');
     const lh  = Math.round(sz * 1.3);   // chiều cao dòng chữ
     // tY = đỉnh đường kẻ, chữ nằm bên dưới đường kẻ
-    const tY  = fY - PAD/2 - lh - 6;
+    const tY  = fY - PAD/2 - lh - 7;
     ctx.beginPath(); ctx.moveTo(rx, tY); ctx.lineTo(R - PAD, tY);
     ctx.lineWidth=3; ctx.stroke();
     ctx.font = '700 '+sz+'px '+FONT;
