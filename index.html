@@ -619,19 +619,36 @@ function draw(canvas, d, logo){
   }
 
   // ── TỔNG: neo ngay trên footer, đường kẻ TRÊN chữ ──
-  if(d.total){
-    const txt = 'TỔNG: '+d.total;
-    const sz  = fitSz(ctx, txt, rw, 46, 24, 'bold');
-    const lh  = Math.round(sz * 1.3);   // chiều cao dòng chữ
-    // tY = đỉnh đường kẻ, chữ nằm bên dưới đường kẻ
-    const tY  = fY - PAD/2 - lh - 6;
-    ctx.beginPath(); ctx.moveTo(rx, tY); ctx.lineTo(R - PAD, tY);
-    ctx.lineWidth=3; ctx.stroke();
-    ctx.font = '700 '+sz+'px '+FONT;
-    ctx.textAlign='center'; ctx.textBaseline='top';
-    ctx.fillStyle='#000';
-    ctx.fillText(txt, rcx, tY + 8);   // chữ nằm dưới đường kẻ, cách 6px
-  }
+// ── TỔNG: neo ngay trên footer, không đè ──
+if(d.total){
+  const txt = 'TỔNG: ' + d.total;
+
+  const sz  = fitSz(ctx, txt, rw, 46, 24, 'bold');
+  const lh  = Math.round(sz * 1.25);   // chiều cao dòng
+
+  const GAP = 14;                      // khoảng cách giữa TOTAL và footer
+  const LINE_OFFSET = Math.round(sz * 0.35); // khoảng cách line -> text
+
+  // baseline vùng TOTAL (đảm bảo không đè footer)
+  const blockTop = fY - GAP - lh;
+
+  // vị trí đường kẻ (trên chữ)
+  const lineY = blockTop;
+
+  ctx.beginPath();
+  ctx.moveTo(rx, lineY);
+  ctx.lineTo(R - PAD, lineY);
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // vẽ chữ dưới line
+  ctx.font = '700 ' + sz + 'px ' + FONT;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = '#000';
+
+  ctx.fillText(txt, rcx, lineY + LINE_OFFSET);
+}
 }
 
 // ── utils ──
