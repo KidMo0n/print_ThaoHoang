@@ -563,11 +563,12 @@ function draw(canvas, d, logo){
     const part1 = dashIdx > 0 ? raw.slice(0, dashIdx).trim() : raw;
     const part2 = dashIdx > 0 ? raw.slice(dashIdx).replace(/^[\s\-]+/,'').trim() : '';
 
-    // Tính vùng khả dụng cho mã cây (giữa header và TỔNG/footer)
-    const treeAreaT = dateBottomY + 8;  // bắt đầu ngay dưới phần ngày
+    // Tính vùng khả dụng cho mã cây
+    const treeAreaT = dateBottomY + 8;
+    const _fH = logo ? 50 : 0;  // footer height — khai báo sớm để tính treeAreaB
     const treeAreaB = d.total
-      ? (()=>{ const sz=fitSz(ctx,('TỔNG: '+d.total),rw,50,26,'bold'); return B - PAD*2 - Math.round(sz*1.5) - fH; })()
-      : B - 50 - 10;
+      ? (()=>{ const sz=fitSz(ctx,('TỔNG: '+d.total),rw,50,26,'bold'); return B - PAD*2 - Math.round(sz*1.5) - _fH; })()
+      : B - _fH - PAD;
 
     const sz1 = fitSz(ctx, part1, rw, 130, 40, '900');
     const h1  = Math.round(sz1*1.1);
