@@ -602,28 +602,35 @@ function draw(canvas, d, logo){
     ctx.textAlign='center'; ry += 6;
   }
 
-  // ── FOOTER: neo đáy phải — chỉ khi có logo (in thông tin công ty) ──
-  const fH = logo ? 50 : 0;
+  // ── FOOTER: neo đáy phải — chỉ khi có logo ──
+  const fH = logo ? 58 : 0;   // đủ chỗ cho 2 dòng text + padding
   const fY = B - fH;
   if(logo){
+    // Đường kẻ trên footer
     ctx.beginPath(); ctx.moveTo(rx, fY); ctx.lineTo(R - PAD, fY);
     ctx.lineWidth=1.5; ctx.stroke();
-    ctx.fillStyle='#000';
-    ctx.font = '700 19px '+FONT; ctx.textAlign='center';
-    ctx.fillText('-Thảo Hoàng Orchid-', rcx, fY + 16);
-    ctx.font = 'normal 17px '+FONT;
-    ctx.fillText('www.thaohoangorchid.com', rcx, fY + 36);
+    ctx.fillStyle='#000'; ctx.textBaseline='top';
+    // 2 dòng căn giữa trong fH
+    ctx.font = '700 18px '+FONT; ctx.textAlign='center';
+    ctx.fillText('-Thảo Hoàng Orchid-', rcx, fY + 8);
+    ctx.font = 'normal 16px '+FONT;
+    ctx.fillText('www.thaohoangorchid.com', rcx, fY + 30);
+    ctx.textBaseline='top';
   }
 
-  // ── TỔNG: neo trên footer ──
+  // ── TỔNG: neo ngay trên footer, đường kẻ TRÊN chữ ──
   if(d.total){
     const txt = 'TỔNG: '+d.total;
-    const sz  = fitSz(ctx, txt, rw, 50, 26, 'bold');
-    const tY  = fY - Math.round(sz*1.5) - PAD/2;
+    const sz  = fitSz(ctx, txt, rw, 46, 24, 'bold');
+    const lh  = Math.round(sz * 1.3);   // chiều cao dòng chữ
+    // tY = đỉnh đường kẻ, chữ nằm bên dưới đường kẻ
+    const tY  = fY - PAD/2 - lh - 6;
     ctx.beginPath(); ctx.moveTo(rx, tY); ctx.lineTo(R - PAD, tY);
-    ctx.lineWidth=4; ctx.stroke();
-    ctx.font = '700 '+sz+'px '+FONT; ctx.textAlign='center';
-    ctx.fillText(txt, rcx, tY+10);
+    ctx.lineWidth=3; ctx.stroke();
+    ctx.font = '700 '+sz+'px '+FONT;
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillStyle='#000';
+    ctx.fillText(txt, rcx, tY + 6);   // chữ nằm dưới đường kẻ, cách 6px
   }
 }
 
