@@ -251,10 +251,10 @@ const CH =  862;
 //   phải (PR) > trái  (PL) : bù crop phía phải
 // Sau khi xoay 90°CW: trên→phải, phải→dưới, dưới→trái, trái→trên
 // Điều chỉnh các giá trị này nếu vẫn bị lệch (mỗi đơn vị ≈ 0.085mm)
-const PT = 24;   // 2mm @ 300dpi ≈ 24px
-const PB = 24;
-const PL = 24;
-const PR = 24;
+const PT = 0;    // lề trên  = 0mm
+const PB = 47;   // lề dưới  = 4mm @ 300dpi ≈ 47px
+const PL = 47;   // lề trái  = 4mm @ 300dpi ≈ 47px
+const PR = 0;    // lề phải  = 0mm
 const PAD = 24;  // padding nội dung bên trong viền: 2mm
 
 const DIV_X = Math.round(CW * 0.70);   // 70% trái / 30% phải
@@ -603,7 +603,7 @@ function draw(canvas, d, logo){
   }
 
   // ── FOOTER: neo đáy phải — chỉ khi có logo ──
-  const fH = logo ? 68 : 0;   // đủ chỗ cho 2 dòng text + padding
+  const fH = logo ? 68 : 0;
   const fY = B - fH;
   if(logo){
     // Đường kẻ trên footer
@@ -618,37 +618,21 @@ function draw(canvas, d, logo){
     ctx.textBaseline='top';
   }
 
-  // ── TỔNG: neo ngay trên footer, đường kẻ TRÊN chữ ──
-// ── TỔNG: neo ngay trên footer, không đè ──
-if(d.total){
-  const txt = 'TỔNG: ' + d.total;
-
-  const sz  = fitSz(ctx, txt, rw, 46, 24, 'bold');
-  const lh  = Math.round(sz * 1.25);   // chiều cao dòng
-
-  const GAP = 14;                      // khoảng cách giữa TOTAL và footer
-  const LINE_OFFSET = Math.round(sz * 0.35); // khoảng cách line -> text
-
-  // baseline vùng TOTAL (đảm bảo không đè footer)
-  const blockTop = fY - GAP - lh;
-
-  // vị trí đường kẻ (trên chữ)
-  const lineY = blockTop;
-
-  ctx.beginPath();
-  ctx.moveTo(rx, lineY);
-  ctx.lineTo(R - PAD, lineY);
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  // vẽ chữ dưới line
-  ctx.font = '700 ' + sz + 'px ' + FONT;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillStyle = '#000';
-
-  ctx.fillText(txt, rcx, lineY + LINE_OFFSET);
-}
+  // ── TỔNG: neo ngay trên footer ──
+  if(d.total){
+    const txt = 'TỔNG: ' + d.total;
+    const sz  = fitSz(ctx, txt, rw, 46, 24, 'bold');
+    const lh  = Math.round(sz * 1.25);
+    const GAP = 14;
+    const LINE_OFFSET = Math.round(sz * 0.35);
+    const blockTop = fY - GAP - lh;
+    const lineY = blockTop;
+    ctx.beginPath(); ctx.moveTo(rx, lineY); ctx.lineTo(R - PAD, lineY);
+    ctx.lineWidth = 3; ctx.stroke();
+    ctx.font = '700 ' + sz + 'px ' + FONT;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = '#000';
+    ctx.fillText(txt, rcx, lineY + LINE_OFFSET);
+  }
 }
 
 // ── utils ──
