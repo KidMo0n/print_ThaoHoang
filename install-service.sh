@@ -44,7 +44,18 @@ if [ -z "$NODE_BIN" ]; then
 fi
 
 NODE_VER="$($NODE_BIN --version)"
-NPM_BIN="$(dirname $NODE_BIN)/npm"
+
+# Tìm npm: thử PATH trước, fallback về cùng thư mục với node
+NPM_BIN="$(command -v npm 2>/dev/null || true)"
+if [ -z "$NPM_BIN" ]; then
+  NPM_BIN="$(dirname "$NODE_BIN")/npm"
+fi
+if [ ! -x "$NPM_BIN" ]; then
+  echo "❌  Không tìm thấy npm. Cài lại Node.js:"
+  echo "    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
+  echo "    sudo apt-get install -y nodejs"
+  exit 1
+fi
 echo "✅  npm → $NPM_BIN"
 echo "✅  Node.js $NODE_VER → $NODE_BIN"
 

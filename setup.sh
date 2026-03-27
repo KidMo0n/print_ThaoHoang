@@ -89,8 +89,17 @@ else
 fi
 
 NODE_VER="$($NODE_BIN --version)"
-NPM_BIN="$(dirname $NODE_BIN)/npm"
-ok "Node.js $NODE_VER | npm: $NPM_BIN"
+
+# Tìm npm: thử PATH trước, fallback về cùng thư mục với node
+NPM_BIN="$(command -v npm 2>/dev/null || true)"
+if [ -z "$NPM_BIN" ]; then
+  NPM_BIN="$(dirname "$NODE_BIN")/npm"
+fi
+if [ ! -x "$NPM_BIN" ]; then
+  err "Không tìm thấy npm. Cài lại Node.js:\n    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -\n    sudo apt-get install -y nodejs"
+fi
+ok "Node.js $NODE_VER → $NODE_BIN"
+ok "npm → $NPM_BIN"
 
 # ════════════════════════════════════════════════════════
 #  BƯỚC 2: CUPS
@@ -427,6 +436,17 @@ if [ "$STATUS" = "active" ]; then
   echo "  Xem log     : journalctl -u $SERVICE_NAME -f"
   echo "  Khởi lại    : sudo systemctl restart $SERVICE_NAME"
   echo "  Chuyển thư mục: chạy lại sudo ./setup.sh từ vị trí mới"
+  echo ""
+  echo -e "${YELLOW}⚠️   BƯỚC TIẾP THEO — Cloudflare Tunnel (chưa tự động):${NC}"
+  echo "  Server cần tunnel để Cloudflare Pages gọi được từ internet."
+  echo "  Nếu chưa có cloudflared:"
+  echo "    curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | sudo tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null"
+  echo "    echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main' | sudo tee /etc/apt/sources.list.d/cloudflared.list"
+  echo "    sudo apt-get update && sudo apt-get install -y cloudflared"
+  echo "    sudo cloudflared service install <TOKEN_KHU>"
+  echo "  Tunnel phải trỏ đến IP tĩnh (không dùng localhost):"
+  echo "    Khu A: http://192.168.0.6:4001"
+  echo "    Khu B: http://192.168.2.14:4001"
 else
   echo -e "${RED}⚠️   Service chưa active — xem log:${NC}"
   journalctl -u "$SERVICE_NAME" -n 30 --no-pager || true
