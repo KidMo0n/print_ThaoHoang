@@ -104,6 +104,7 @@ body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;padding-bo
   <div class="tabs">
     <div class="tab on" id="t1" onclick="goTab(1)">In Tem</div>
     <div class="tab"    id="t2" onclick="goTab(2)">Chỉnh Sửa</div>
+    <div class="tab"    id="t3" onclick="goTab(3)">In Logo</div>
   </div>
 </div>
 
@@ -174,6 +175,33 @@ body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;padding-bo
         </div>
       </div>
       <button class="abtn" onclick="applyEdit()">✓ Áp dụng & Xem trước</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3 -->
+<div class="panel" id="p3">
+  <div class="content" style="max-width:800px;margin:0 auto;padding:20px 15px">
+    <div class="pw">
+      <h3>Xem trước logo:</h3>
+      <canvas id="cvLogo"></canvas>
+    </div>
+    <div class="ctrl">
+      <div class="khu-row">
+        <span class="klbl">Chọn khu:</span>
+        <button class="kbtn" id="bLA" onclick="selKhuLogo('A')">Khu A</button>
+        <button class="kbtn" id="bLB" onclick="selKhuLogo('B')">Khu B</button>
+      </div>
+      <div class="psec">
+        <div class="qc">
+          <button class="qb" onclick="dqL(-1)">-</button>
+          <input class="qi" type="number" id="qiL" value="1" min="1" max="999"
+                 oninput="vqL()" onkeypress="if(event.key==='Enter')doPrintLogo()">
+          <button class="qb" onclick="dqL(1)">+</button>
+        </div>
+        <button class="pbtn" id="pbL" onclick="doPrintLogo()">IN LOGO</button>
+      </div>
+      <button class="sbtn" onclick="doShareLogo()">📷 Lưu / Chia sẻ ảnh</button>
     </div>
   </div>
 </div>
@@ -733,13 +761,154 @@ function ge(id){return document.getElementById(id);}
 function sh(id){ge(id).style.display='';}
 function hd(id){ge(id).style.display='none';}
 function goTab(n){
-  [1,2].forEach(i=>{ge('p'+i).classList.toggle('on',i===n);ge('t'+i).classList.toggle('on',i===n);});
+  [1,2,3].forEach(i=>{ge('p'+i).classList.toggle('on',i===n);ge('t'+i).classList.toggle('on',i===n);});
   window.scrollTo({top:0,behavior:'smooth'});
+  if(n===3) renderLogo();
 }
 function selKhu(k){
   khu=k;
   ge('bA').classList.toggle('on',k==='A');
   ge('bB').classList.toggle('on',k==='B');
+}
+
+// ── Tab 3: In Logo ──
+let khuLogo = null;
+
+function selKhuLogo(k){
+  khuLogo = k;
+  ge('bLA').classList.toggle('on',k==='A');
+  ge('bLB').classList.toggle('on',k==='B');
+}
+function dqL(d){const i=ge('qiL');i.value=Math.max(1,Math.min(999,(parseInt(i.value)||1)+d));}
+function vqL(){const i=ge('qiL');let v=parseInt(i.value);if(isNaN(v)||v<1)i.value=1;else if(v>999)i.value=999;}
+
+function drawLogo(canvas){
+  const ctx = canvas.getContext('2d');
+  canvas.width = CW; canvas.height = CH;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0,0,CW,CH);
+
+  const LW = 5;
+  const T  = PT + LW;
+  const B  = CH - PB - LW;
+  const L  = PL + LW;
+  const R  = CW - PR - LW;
+  const W  = R - L;
+  const H  = B - T;
+
+  // Viền ngoài
+  ctx.strokeStyle='#000'; ctx.lineWidth=LW;
+  roundRect(ctx, PL+LW/2, PT+LW/2, CW-PL-PR-LW, CH-PT-PB-LW, 12);
+  ctx.stroke();
+
+  const cx = L + W/2;
+  const cy = T + H/2;
+
+  if(LOGO_B64 && _logoImg.complete && _logoImg.naturalWidth > 0){
+    // Logo: fit trong 60% chiều rộng nội dung, tối đa 60% chiều cao
+    const maxLogoW = W * 0.6;
+    const maxLogoH = H * 0.52;
+    const iw = _logoImg.naturalWidth, ih = _logoImg.naturalHeight;
+    const scale = Math.min(maxLogoW/iw, maxLogoH/ih);
+    const dw = iw*scale, dh = ih*scale;
+
+    // Căn giữa logo + tên theo chiều dọc
+    const nameSz = fitSz(ctx, 'Thảo Hoàng Orchid', W * 0.8, 72, 28, '700');
+    ctx.font = '700 '+nameSz+'px '+FONT;
+    const gap = 28;
+    const totalH = dh + gap + nameSz;
+    const startY = cy - totalH/2;
+
+    // Vẽ logo
+    const logoX = cx - dw/2;
+    const logoY = startY;
+    ctx.drawImage(_logoImg, logoX, logoY, dw, dh);
+
+    // Tên
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('Thảo Hoàng Orchid', cx, logoY + dh + gap);
+  } else {
+    // Không có logo: chỉ vẽ tên to giữa
+    const nameSz = fitSz(ctx, 'Thảo Hoàng Orchid', W * 0.85, 100, 28, '700');
+    ctx.font = '700 '+nameSz+'px '+FONT;
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Thảo Hoàng Orchid', cx, cy);
+  }
+}
+
+function renderLogo(){
+  const cv = ge('cvLogo');
+  if(!cv) return;
+  if(LOGO_B64 && (!_logoImg.complete || _logoImg.naturalWidth===0)){
+    preloadLogo(LOGO_B64, function(){ drawLogo(cv); });
+  } else {
+    drawLogo(cv);
+  }
+  // Scale canvas hiển thị
+  cv.style.width='100%'; cv.style.height='auto';
+}
+
+async function doShareLogo(){
+  const cv = ge('cvLogo');
+  const rot = document.createElement('canvas');
+  rot.width=cv.height; rot.height=cv.width;
+  const rctx=rot.getContext('2d');
+  rctx.translate(cv.height,0); rctx.rotate(Math.PI/2);
+  rctx.drawImage(cv,0,0);
+  const b64=rot.toDataURL('image/png').split(',')[1];
+  const blob=await fetch('data:image/png;base64,'+b64).then(r=>r.blob());
+  const file=new File([blob],'logo-thao-hoang.png',{type:'image/png'});
+  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+    await navigator.share({title:'Logo Thao Hoang Orchid',files:[file]});
+  } else {
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url; a.download='logo-thao-hoang.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function doPrintLogo(){
+  if(!khuLogo){alert('Vui lòng chọn Khu A hoặc Khu B!');return;}
+  const copies=parseInt(ge('qiL').value)||1;
+  const btn=ge('pbL');
+  rst(); ge('loadOv').classList.add('on'); btn.disabled=true;
+  try{
+    ss('s1','act');
+    const cv=ge('cvLogo');
+    const rot=document.createElement('canvas');
+    rot.width=cv.height; rot.height=cv.width;
+    const rctx=rot.getContext('2d');
+    rctx.translate(cv.height,0); rctx.rotate(Math.PI/2);
+    rctx.drawImage(cv,0,0);
+    const b64=rot.toDataURL('image/png').split(',')[1];
+    ss('s1','ok'); ss('s2','act');
+    const resp=await fetch(SRV[khuLogo]+'/print',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imageBase64:b64, numCopies:copies})
+    });
+    ss('s2','ok'); ss('s3','act');
+    const json=await resp.json();
+    ss('s3',resp.ok?'ok':'err');
+    ge('loadOv').classList.remove('on'); btn.disabled=false;
+    if(resp.ok){
+      ge('rMsg').textContent='Đã in '+copies+' tem logo.';
+      ge('rOk').style.display=''; ge('rErr').style.display='none';
+    } else {
+      ge('eMsg').textContent=json.error||'Lỗi không xác định';
+      ge('rErr').style.display=''; ge('rOk').style.display='none';
+    }
+    ge('resOv').classList.add('on');
+  } catch(e){
+    ge('loadOv').classList.remove('on'); btn.disabled=false;
+    ge('eMsg').textContent=e.message||'Lỗi kết nối';
+    ge('rErr').style.display=''; ge('rOk').style.display='none';
+    ge('resOv').classList.add('on');
+  }
 }
 function dq(d){const i=ge('qi');i.value=Math.max(1,Math.min(999,(parseInt(i.value)||1)+d));}
 function vq(){const i=ge('qi');let v=parseInt(i.value);if(isNaN(v)||v<1)i.value=1;else if(v>999)i.value=999;}
@@ -840,7 +1009,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   // Preload logo để canvas render đúng ngay lần đầu
   // Preload logo vào _logoImg global, sau đó render
   if(LOGO_B64){
-    preloadLogo(LOGO_B64, function(){ render(); });
+    preloadLogo(LOGO_B64, function(){ render(); renderLogo(); });
   }
 });
 </script>
