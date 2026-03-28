@@ -1305,163 +1305,249 @@ async function doPrintA4(){
 <!-- ══════════════════ TAB 5: CÀI ĐẶT ══════════════════ -->
 <style>
 #p5 .scard{background:#1e1e2e;border-radius:10px;padding:16px;margin-bottom:14px;}
-#p5 .scard h4{margin:0 0 12px;color:#a6e3a1;font-size:14px;letter-spacing:.5px;}
+#p5 .scard h4{margin:0 0 12px;font-size:14px;letter-spacing:.5px;}
+#p5 .scard h4.green{color:#a6e3a1;}
+#p5 .scard h4.blue{color:#89b4fa;}
 #p5 .srow{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 #p5 .srow label{flex:0 0 120px;font-size:13px;color:#cdd6f4;}
 #p5 .srow select,#p5 .srow input{flex:1;background:#313244;border:1px solid #45475a;color:#cdd6f4;
   border-radius:6px;padding:7px 10px;font-size:13px;}
 #p5 .srow select:focus,#p5 .srow input:focus{outline:none;border-color:#89b4fa;}
 #p5 .sfooter{display:flex;gap:10px;margin-top:6px;}
-#p5 .sbtn{flex:1;padding:11px;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;}
-#p5 .sbtn.save{background:#a6e3a1;color:#1e1e2e;}
-#p5 .sbtn.reload{background:#89b4fa;color:#1e1e2e;}
+#p5 .sbtn2{flex:1;padding:11px;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;}
+#p5 .sbtn2.save{background:#a6e3a1;color:#1e1e2e;}
+#p5 .sbtn2.reload{background:#89b4fa;color:#1e1e2e;}
 #p5 .smsg{margin-top:10px;padding:10px 14px;border-radius:7px;font-size:13px;display:none;}
 #p5 .smsg.ok{background:#1e4a2e;color:#a6e3a1;display:block;}
 #p5 .smsg.err{background:#4a1e1e;color:#f38ba8;display:block;}
 #p5 .stag{display:inline-block;background:#313244;border-radius:4px;padding:2px 8px;
   font-size:11px;color:#89b4fa;margin-left:4px;}
+#p5 .khusep{border-top:1px solid #313244;margin:14px 0;}
+#p5 .khu-title{font-size:12px;color:#fab387;font-weight:bold;margin-bottom:10px;letter-spacing:.5px;}
 </style>
 
 <div class="panel" id="p5">
-  <div class="pw" style="max-width:520px">
+  <div class="pw" style="max-width:560px">
 
-    <div class="scard">
-      <h4>🖨 MÁY IN TEM (Label)</h4>
-      <div class="srow">
-        <label>Máy in hiện tại</label>
-        <select id="sCfgLabel">
-          <option value="">-- đang tải... --</option>
-        </select>
-      </div>
-      <div class="srow">
-        <label>Nhập thủ công</label>
-        <input type="text" id="sCfgLabelCustom" placeholder="Tên CUPS, ví dụ: XP-365B">
-      </div>
-      <div class="srow">
-        <label>Media / khổ giấy</label>
-        <input type="text" id="sCfgMedia" placeholder="Custom.73x97mm">
-      </div>
-    </div>
-
-    <div class="scard">
-      <h4>🖨 MÁY IN A4</h4>
-      <div class="srow">
-        <label>Máy in hiện tại</label>
-        <select id="sCfgA4">
-          <option value="">-- đang tải... --</option>
-        </select>
-      </div>
-      <div class="srow">
-        <label>Nhập thủ công</label>
-        <input type="text" id="sCfgA4Custom" placeholder="Tên CUPS, ví dụ: HP-LaserJet">
-      </div>
-    </div>
-
+    <!-- Thông tin server -->
     <div class="scard" style="background:#12121c;">
-      <h4 style="color:#89b4fa;">ℹ Thông tin máy chủ</h4>
-      <div style="font-size:12px;color:#6c7086;line-height:1.9;">
-        Khu: <span id="sInfoKhu" class="stag">—</span>
-        &nbsp; Hostname: <span id="sInfoHost" class="stag">—</span><br>
-        Label hiện tại: <span id="sInfoLabel" class="stag">—</span><br>
-        A4 hiện tại: <span id="sInfoA4" class="stag">—</span><br>
-        Media: <span id="sInfoMedia" class="stag">—</span>
+      <h4 class="blue">ℹ Thông tin kết nối</h4>
+      <div style="font-size:12px;color:#6c7086;line-height:2;">
+        Truy cập qua: <span id="sInfoMode" class="stag">—</span><br>
+        Hostname server: <span id="sInfoHost" class="stag">—</span>
       </div>
     </div>
 
-    <div class="sfooter">
-      <button class="sbtn reload" onclick="settingsLoad()">🔄 Làm mới</button>
-      <button class="sbtn save"   onclick="settingsSave()">💾 Lưu cài đặt</button>
-    </div>
-    <div class="smsg" id="sMsg"></div>
+    <!-- Container: sẽ render 1 khu (single) hoặc 2 khu (dual) -->
+    <div id="sKhuContainer"></div>
 
+    <div class="smsg" id="sMsg"></div>
   </div>
 </div>
 
 <script>
-// ── Tab 5: Cài đặt máy in ──────────────────────────────────────────────
+// ── Tab 5: Cài đặt máy in ─────────────────────────────────────────────
+
+// Detect xem đang ở khu nào hay trang tổng
+// Nếu hostname browser chứa a_print hoặc b_print → single mode
+// Nếu không → dual mode (fetch cả 2)
+
+let _servers = null;          // {a: url, b: url}
+let _localConfig = null;      // config của server mà browser đang kết nối
+
 async function settingsLoad(){
   const msgEl = ge('sMsg');
   msgEl.className = 'smsg';
 
-  // Load config + printers song song
+  // Bước 1: lấy config local (server hiện tại)
   try {
-    const [cfgRes, printRes] = await Promise.all([
-      fetch('/config').then(r=>r.json()).catch(()=>null),
-      fetch('/printers').then(r=>r.json()).catch(()=>null)
-    ]);
+    const cfgRes = await fetch('/config').then(r=>r.json());
+    if(!cfgRes || !cfgRes.success) throw new Error('Không lấy được config');
+    _localConfig = cfgRes;
+    _servers = (cfgRes.config && cfgRes.config.servers) || null;
 
-    // Điền thông tin server
-    if(cfgRes && cfgRes.success){
-      const c = cfgRes.config;
-      ge('sInfoKhu').textContent   = cfgRes.khu     || '?';
-      ge('sInfoHost').textContent  = cfgRes.hostname || '?';
-      ge('sInfoLabel').textContent = c.printer_label || '?';
-      ge('sInfoA4').textContent    = c.printer_a4    || '?';
-      ge('sInfoMedia').textContent = c.media_label   || '?';
-      ge('sCfgMedia').value        = c.media_label   || '';
-    }
+    // Hiển thị thông tin kết nối
+    const h = window.location.hostname;
+    ge('sInfoHost').textContent = cfgRes.hostname || h;
 
-    // Điền danh sách máy in vào dropdown
-    const printers = (printRes && printRes.success) ? printRes.printers : [];
-    const labelSel = ge('sCfgLabel');
-    const a4Sel    = ge('sCfgA4');
+    // Xác định mode
+    const isA = h.includes('a_print') || h.includes('a-print');
+    const isB = h.includes('b_print') || h.includes('b-print');
+    const isSingle = isA || isB || h === 'localhost' || /^[\d.]+$/.test(h);
 
-    function fillSelect(sel, current){
-      sel.innerHTML = '<option value="">-- chọn máy in --</option>';
-      printers.forEach(p=>{
-        const opt = document.createElement('option');
-        opt.value = p; opt.textContent = p;
-        if(p === current) opt.selected = true;
-        sel.appendChild(opt);
-      });
-      // Thêm option cho máy in hiện tại nếu không có trong list
-      if(current && !printers.includes(current)){
-        const opt = document.createElement('option');
-        opt.value = current; opt.textContent = current + ' (đang dùng)';
-        opt.selected = true;
-        sel.appendChild(opt);
-      }
-    }
-
-    if(cfgRes && cfgRes.success){
-      fillSelect(labelSel, cfgRes.config.printer_label);
-      fillSelect(a4Sel,    cfgRes.config.printer_a4);
-    }
-
-    if(printers.length === 0){
-      msgEl.className = 'smsg err';
-      msgEl.textContent = '⚠ Không tìm thấy máy in nào trong CUPS. Nhập tên thủ công bên dưới.';
+    if(isSingle){
+      ge('sInfoMode').textContent = `Khu ${cfgRes.khu} (${h})`;
+      await renderSingleMode(cfgRes.khu, '/');
+    } else {
+      ge('sInfoMode').textContent = `Trang tổng — quản lý cả 2 khu`;
+      await renderDualMode();
     }
   } catch(e){
     msgEl.className = 'smsg err';
-    msgEl.textContent = 'Lỗi kết nối: ' + e.message;
+    msgEl.textContent = 'Lỗi: ' + e.message;
   }
 }
 
-async function settingsSave(){
-  const msgEl = ge('sMsg');
+// ── Single Mode: chỉ show config khu hiện tại ─────────────────────────
+async function renderSingleMode(khu, baseUrl){
+  const [cfgRes, printRes] = await Promise.all([
+    fetch(baseUrl + 'config').then(r=>r.json()).catch(()=>null),
+    fetch(baseUrl + 'printers').then(r=>r.json()).catch(()=>null)
+  ]);
+
+  const container = ge('sKhuContainer');
+  container.innerHTML = buildKhuCard(khu, cfgRes, printRes, baseUrl, 'single');
+}
+
+// ── Dual Mode: show 2 card, mỗi card fetch độc lập ────────────────────
+async function renderDualMode(){
+  if(!_servers){
+    ge('sMsg').className = 'smsg err';
+    ge('sMsg').textContent = 'Chưa cấu hình servers trong config.json. Hãy vào từng khu để cài đặt.';
+    ge('sKhuContainer').innerHTML = '';
+    return;
+  }
+  const container = ge('sKhuContainer');
+  container.innerHTML = '<div style="color:#6c7086;font-size:12px;padding:8px 0;">Đang tải cả 2 khu…</div>';
+
+  const [resA, resB] = await Promise.all([
+    Promise.all([
+      fetch(_servers.a + '/config').then(r=>r.json()).catch(()=>null),
+      fetch(_servers.a + '/printers').then(r=>r.json()).catch(()=>null)
+    ]),
+    Promise.all([
+      fetch(_servers.b + '/config').then(r=>r.json()).catch(()=>null),
+      fetch(_servers.b + '/printers').then(r=>r.json()).catch(()=>null)
+    ])
+  ]);
+
+  container.innerHTML =
+    buildKhuCard('A', resA[0], resA[1], _servers.a + '/', 'dual') +
+    '<div class="khusep"></div>' +
+    buildKhuCard('B', resB[0], resB[1], _servers.b + '/', 'dual');
+}
+
+// ── Build HTML một card khu ────────────────────────────────────────────
+function buildKhuCard(khu, cfgRes, printRes, baseUrl, mode){
+  const ok = cfgRes && cfgRes.success;
+  const cfg = ok ? cfgRes.config : {};
+  const printers = (printRes && printRes.success) ? printRes.printers : [];
+  const statusColor = ok ? '#a6e3a1' : '#f38ba8';
+  const statusText = ok ? `✅ Khu ${khu}` : `❌ Khu ${khu} — không kết nối được`;
+
+  // Build dropdown options
+  function buildOpts(current){
+    let html = '<option value="">-- chọn máy in --</option>';
+    printers.forEach(p => {
+      html += `<option value="${p}"${p===current?' selected':''}>${p}</option>`;
+    });
+    if(current && !printers.includes(current)){
+      html += `<option value="${current}" selected>${current} (đang dùng)</option>`;
+    }
+    return html;
+  }
+
+  const uid = 'khu' + khu; // unique id prefix
+  const connInfo = ok ? `<span class="stag">${cfgRes.hostname || ''}</span>` : '';
+  const connUrl  = mode === 'dual' ? `<span class="stag" style="color:#fab387">${baseUrl.replace(/\/$/,'')}</span>` : '';
+
+  return `
+  <div class="scard" id="card${uid}">
+    <h4 class="green" style="color:${statusColor};">${statusText} ${connInfo} ${connUrl}</h4>
+    ${ok ? `
+    <div class="khu-title">🖨 Máy in Tem (Label)</div>
+    <div class="srow">
+      <label>Chọn từ CUPS</label>
+      <select id="${uid}SelLabel">${buildOpts(cfg.printer_label)}</select>
+    </div>
+    <div class="srow">
+      <label>Nhập thủ công</label>
+      <input type="text" id="${uid}InpLabel" placeholder="Tên CUPS máy in tem">
+    </div>
+    <div class="srow">
+      <label>Khổ giấy</label>
+      <input type="text" id="${uid}InpMedia" value="${cfg.media_label||''}" placeholder="Custom.73x97mm">
+    </div>
+    <div style="height:8px;"></div>
+    <div class="khu-title">🖨 Máy in A4</div>
+    <div class="srow">
+      <label>Chọn từ CUPS</label>
+      <select id="${uid}SelA4">${buildOpts(cfg.printer_a4)}</select>
+    </div>
+    <div class="srow">
+      <label>Nhập thủ công</label>
+      <input type="text" id="${uid}InpA4" placeholder="Tên CUPS máy in A4">
+    </div>
+    <div style="height:4px;"></div>
+    <div class="khu-title">🔗 URL server (cho trang tổng)</div>
+    <div class="srow">
+      <label>URL Khu A</label>
+      <input type="text" id="${uid}InpSrvA" value="${(cfg.servers&&cfg.servers.a)||''}" placeholder="https://a_print.thangmotsach.com">
+    </div>
+    <div class="srow">
+      <label>URL Khu B</label>
+      <input type="text" id="${uid}InpSrvB" value="${(cfg.servers&&cfg.servers.b)||''}" placeholder="https://b_print.thangmotsach.com">
+    </div>
+    <div class="sfooter" style="margin-top:12px;">
+      <button class="sbtn2 reload" onclick="settingsReloadKhu('${khu}','${baseUrl}')">🔄 Làm mới</button>
+      <button class="sbtn2 save"   onclick="settingsSaveKhu('${khu}','${baseUrl}')">💾 Lưu Khu ${khu}</button>
+    </div>
+    <div class="smsg" id="msg${uid}"></div>
+    ` : `<div style="color:#f38ba8;font-size:12px;padding:4px 0;">Không thể kết nối tới server Khu ${khu}.<br>Kiểm tra mạng hoặc URL trong config.</div>`}
+  </div>`;
+}
+
+// ── Làm mới 1 khu ─────────────────────────────────────────────────────
+async function settingsReloadKhu(khu, baseUrl){
+  const uid = 'khu' + khu;
+  const card = ge('card' + uid);
+  if(card) card.style.opacity = '0.5';
+  try {
+    const [cfgRes, printRes] = await Promise.all([
+      fetch(baseUrl + 'config').then(r=>r.json()).catch(()=>null),
+      fetch(baseUrl + 'printers').then(r=>r.json()).catch(()=>null)
+    ]);
+    // Replace card HTML
+    const tmp = document.createElement('div');
+    tmp.innerHTML = buildKhuCard(khu, cfgRes, printRes, baseUrl, baseUrl==='/' ? 'single':'dual');
+    const newCard = tmp.firstElementChild;
+    if(card) card.replaceWith(newCard);
+  } catch(e) {
+    if(card) card.style.opacity = '';
+  }
+}
+
+// ── Lưu 1 khu ─────────────────────────────────────────────────────────
+async function settingsSaveKhu(khu, baseUrl){
+  const uid = 'khu' + khu;
+  const msgEl = ge('msg' + uid);
+  if(!msgEl) return;
   msgEl.className = 'smsg';
 
-  // Ưu tiên nhập thủ công, fallback về dropdown
-  const labelCustom = ge('sCfgLabelCustom').value.trim();
-  const a4Custom    = ge('sCfgA4Custom').value.trim();
-  const label       = labelCustom || ge('sCfgLabel').value;
-  const a4          = a4Custom    || ge('sCfgA4').value;
-  const media       = ge('sCfgMedia').value.trim();
+  const labelVal   = (ge(uid+'InpLabel')||{}).value?.trim() || (ge(uid+'SelLabel')||{}).value || '';
+  const a4Val      = (ge(uid+'InpA4')||{}).value?.trim()    || (ge(uid+'SelA4')||{}).value    || '';
+  const mediaVal   = (ge(uid+'InpMedia')||{}).value?.trim() || '';
+  const srvAVal    = (ge(uid+'InpSrvA')||{}).value?.trim()  || '';
+  const srvBVal    = (ge(uid+'InpSrvB')||{}).value?.trim()  || '';
 
-  if(!label && !a4 && !media){
+  const body = {};
+  if(labelVal)  body.printer_label = labelVal;
+  if(a4Val)     body.printer_a4    = a4Val;
+  if(mediaVal)  body.media_label   = mediaVal;
+  if(srvAVal || srvBVal){
+    body.servers = {};
+    if(srvAVal) body.servers.a = srvAVal;
+    if(srvBVal) body.servers.b = srvBVal;
+  }
+
+  if(!Object.keys(body).length){
     msgEl.className = 'smsg err';
-    msgEl.textContent = 'Chưa chọn hoặc nhập thông tin máy in.';
+    msgEl.textContent = 'Chưa nhập thông tin nào.';
     return;
   }
 
-  const body = {};
-  if(label) body.printer_label = label;
-  if(a4)    body.printer_a4    = a4;
-  if(media) body.media_label   = media;
-
   try {
-    const res = await fetch('/config', {
+    const res = await fetch(baseUrl + 'config', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(body)
@@ -1470,11 +1556,10 @@ async function settingsSave(){
     if(res.success){
       msgEl.className = 'smsg ok';
       msgEl.textContent = '✅ ' + res.message;
-      // Xóa ô nhập thủ công sau khi lưu
-      ge('sCfgLabelCustom').value = '';
-      ge('sCfgA4Custom').value    = '';
-      // Refresh thông tin hiển thị
-      settingsLoad();
+      // Clear manual inputs
+      ['InpLabel','InpA4'].forEach(k=>{ const e=ge(uid+k); if(e) e.value=''; });
+      // Reload card
+      setTimeout(()=>settingsReloadKhu(khu, baseUrl), 800);
     } else {
       msgEl.className = 'smsg err';
       msgEl.textContent = '❌ ' + res.message;

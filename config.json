@@ -1,5 +1,9 @@
 {
   "printer_label": "XP-365B",
   "printer_a4": "A4-Printer",
-  "media_label": "Custom.73x97mm"
+  "media_label": "Custom.73x97mm",
+  "servers": {
+    "a": "https://a_print.thangmotsach.com",
+    "b": "https://b_print.thangmotsach.com"
+  }
 }

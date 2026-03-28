@@ -45,10 +45,15 @@ const IS_A     = HOSTNAME.includes('khu-a') || HOSTNAME.includes('khua') || HOST
 const KHU      = IS_A ? 'A' : 'B';
 
 // ── Default config (fallback nếu chưa có config.json) ──────────────────
+// servers: URL truy cập từ browser (để frontend fetch cross-khu khi ở trang tổng)
 const DEFAULT_CONFIG = {
   printer_label : IS_A ? 'XP-365B'         : 'XP-470B',
   printer_a4    : IS_A ? 'A4-Printer-KhuA' : 'A4-Printer-KhuB',
-  media_label   : 'Custom.73x97mm'
+  media_label   : 'Custom.73x97mm',
+  servers: {
+    a: 'https://a_print.thangmotsach.com',
+    b: 'https://b_print.thangmotsach.com'
+  }
 };
 
 // ── Load / Save config ─────────────────────────────────────────────────
