@@ -24,11 +24,18 @@ const IS_A    = os.hostname().toLowerCase().includes('aserver');
 const PRINTER = IS_A ? 'XP-365B' : 'XP-470B';
 const MEDIA   = 'Custom.73x97mm';
 
+// ── Máy in A4 — điền tên CUPS printer sau khi biết ──
+// Xem tên bằng: lpstat -a  hoặc  lpstat -v
+const PRINTER_A4_KHU_A = 'A4-Printer-KhuA';   // TODO: thay bằng tên thật
+const PRINTER_A4_KHU_B = 'A4-Printer-KhuB';   // TODO: thay bằng tên thật
+const PRINTER_A4 = IS_A ? PRINTER_A4_KHU_A : PRINTER_A4_KHU_B;
+
 console.log('─────────────────────────────────────');
-console.log(`  Khu    : ${IS_A ? 'A' : 'B'}`);
-console.log(`  Printer: ${PRINTER}`);
-console.log(`  Media  : ${MEDIA}`);
-console.log(`  Port   : ${PORT}`);
+console.log(`  Khu      : ${IS_A ? 'A' : 'B'}`);
+console.log(`  Printer  : ${PRINTER}`);
+console.log(`  Printer A4: ${PRINTER_A4}`);
+console.log(`  Media    : ${MEDIA}`);
+console.log(`  Port     : ${PORT}`);
 console.log('─────────────────────────────────────');
 
 // ─── APP ───────────────────────────────────────────────
@@ -110,6 +117,104 @@ app.post('/in_label/print', (req, res) => {
       success: true,
       message: `Da gui ${copies} tem den Khu ${IS_A ? 'A' : 'B'}`,
       details: { printer: PRINTER, copies, ts: new Date().toLocaleString('vi-VN') }
+    });
+  });
+});
+
+// ─── PRINT A4 ──────────────────────────────────────────
+// Nhận file (PDF / DOCX / PNG / JPG) dưới dạng base64
+// DOCX  → LibreOffice headless chuyển sang PDF → lp
+// PDF   → lp trực tiếp
+// Image → lp trực tiếp (CUPS tự scale fit A4)
+app.get('/in_label/health_a4', (req, res) => {
+  exec(`lpstat -p "${PRINTER_A4}" 2>&1`, (err, out) => {
+    res.json({
+      status    : 'ok',
+      khu       : IS_A ? 'A' : 'B',
+      printer_a4: PRINTER_A4,
+      available : !err && !out.toLowerCase().includes('unknown'),
+      timestamp : new Date().toISOString()
+    });
+  });
+});
+
+app.post('/in_label/print_a4', async (req, res) => {
+  const { fileBase64, fileName = 'document', numCopies = 1, sides = 'one-sided' } = req.body;
+  if (!fileBase64) return res.json({ success: false, message: 'Thiếu fileBase64' });
+
+  const copies = Math.max(1, Math.min(99, parseInt(numCopies) || 1));
+  const ext    = (fileName.split('.').pop() || 'pdf').toLowerCase();
+  const ts     = Date.now();
+  const tmpIn  = path.join(os.tmpdir(), `a4_${ts}.${ext}`);
+  let   printTarget = tmpIn;
+
+  console.log(`\n[A4] ${new Date().toLocaleString('vi-VN')}  file=${fileName}  copies=${copies}  sides=${sides}`);
+
+  // Ghi file gốc xuống tmp
+  try {
+    fs.writeFileSync(tmpIn, Buffer.from(fileBase64, 'base64'));
+  } catch (e) {
+    return res.json({ success: false, message: 'Lỗi ghi file: ' + e.message });
+  }
+
+  // Nếu là DOCX → chuyển sang PDF bằng LibreOffice
+  const cleanup = () => {
+    try { fs.unlinkSync(tmpIn); } catch (_) {}
+    if (printTarget !== tmpIn) { try { fs.unlinkSync(printTarget); } catch (_) {} }
+  };
+
+  const isDocx = ['docx','doc','odt','xlsx','xls','pptx','ppt'].includes(ext);
+  if (isDocx) {
+    const tmpDir  = os.tmpdir();
+    const pdfName = path.basename(tmpIn, '.' + ext) + '.pdf';
+    const pdfOut  = path.join(tmpDir, pdfName);
+
+    try {
+      await new Promise((resolve, reject) => {
+        const libreCmd = `libreoffice --headless --convert-to pdf --outdir "${tmpDir}" "${tmpIn}"`;
+        console.log(`[A4] convert: ${libreCmd}`);
+        exec(libreCmd, { timeout: 30000 }, (err, _, stderr) => {
+          if (err) return reject(new Error('LibreOffice: ' + (stderr || err.message)));
+          if (!fs.existsSync(pdfOut)) return reject(new Error('PDF output không tìm thấy'));
+          resolve();
+        });
+      });
+      printTarget = pdfOut;
+    } catch (e) {
+      cleanup();
+      return res.json({ success: false, message: e.message });
+    }
+  }
+
+  // Lệnh lp in A4
+  const sidesOpt = sides === 'two-sided-long-edge' ? 'two-sided-long-edge'
+                 : sides === 'two-sided-short-edge' ? 'two-sided-short-edge'
+                 : 'one-sided';
+
+  const cmd = [
+    'lp',
+    `-d "${PRINTER_A4}"`,
+    `-n ${copies}`,
+    `-o media=A4`,
+    `-o sides=${sidesOpt}`,
+    `-o fit-to-page`,
+    `"${printTarget}"`
+  ].join(' ');
+
+  console.log(`[A4] ${cmd}`);
+
+  exec(cmd, (err, _out, stderr) => {
+    cleanup();
+    if (err) {
+      console.error('[A4] lp error:', err.message);
+      return res.json({ success: false, message: `Lỗi máy in: ${err.message}` });
+    }
+    if (stderr) console.warn('[A4] stderr:', stderr);
+    console.log(`[A4] OK — ${copies} bản → ${PRINTER_A4}`);
+    res.json({
+      success: true,
+      message: `Đã gửi ${copies} bản đến Khu ${IS_A ? 'A' : 'B'}`,
+      details : { printer: PRINTER_A4, copies, fileName, ts: new Date().toLocaleString('vi-VN') }
     });
   });
 });

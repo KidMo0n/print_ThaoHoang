@@ -95,6 +95,47 @@ body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;padding-bo
     margin:20px 15px;display:none}
 .al.on{display:block}
 @media(max-width:560px){.psec{flex-direction:column;gap:12px}.pbtn{width:100%;max-width:260px}.tc{grid-template-columns:1fr}}
+
+/* ── Tab In A4 ── */
+.a4-wrap{background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1);padding:20px;margin-bottom:16px}
+.drop-zone{border:2.5px dashed #bdc3c7;border-radius:10px;padding:36px 20px;text-align:center;
+           cursor:pointer;transition:border-color .2s,background .2s;position:relative;background:#fafafa}
+.drop-zone.over{border-color:#3498db;background:#eaf4fd}
+.drop-zone.has-file{border-color:#2ecc71;background:#eafaf1}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz-icon{font-size:40px;margin-bottom:10px;display:block}
+.dz-text{font-size:15px;font-weight:bold;color:#555;margin-bottom:6px}
+.dz-sub{font-size:12px;color:#999}
+.file-info{display:none;align-items:center;gap:12px;background:#f0f9f4;border:1px solid #a9dfbf;
+           border-radius:8px;padding:12px 14px;margin-top:12px}
+.file-info.on{display:flex}
+.fi-icon{font-size:28px;flex-shrink:0}
+.fi-body{flex:1;min-width:0}
+.fi-name{font-size:14px;font-weight:bold;color:#1e8449;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fi-size{font-size:12px;color:#7dcea0;margin-top:2px}
+.fi-clear{background:none;border:none;font-size:20px;cursor:pointer;color:#aaa;flex-shrink:0;padding:0 4px}
+.fi-clear:hover{color:#e74c3c}
+.a4-preview-wrap{display:none;margin-top:14px}
+.a4-preview-wrap.on{display:block}
+.a4-preview-wrap h4{font-size:13px;color:#555;margin-bottom:8px}
+.a4-preview-box{width:100%;border:1px solid #ddd;border-radius:4px;overflow:hidden;
+                background:#f9f9f9;min-height:200px;display:flex;align-items:center;justify-content:center}
+.a4-preview-box img{max-width:100%;max-height:500px;display:block;object-fit:contain}
+.a4-preview-box iframe{width:100%;height:500px;border:none}
+.a4-preview-box .pdf-msg{color:#888;font-size:13px;padding:20px}
+.a4-opts{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.a4-opts label{font-size:14px;color:#555;font-weight:bold}
+.a4-opts .qc{border-color:#2ecc71}
+.a4-opts .qb{background:#2ecc71}
+.a4-opts .qb:hover{background:#27ae60}
+.pbtn-a4{background:#8e44ad;color:#fff;border:none;border-radius:8px;cursor:pointer;
+         font-size:20px;font-weight:bold;padding:14px 36px;height:56px;
+         box-shadow:0 4px 6px rgba(0,0,0,.1)}
+.pbtn-a4:hover{background:#7d3c98}.pbtn-a4:disabled{background:#aaa;cursor:not-allowed}
+.a4-status{display:none;padding:10px 14px;border-radius:6px;font-size:13px;margin-top:8px;text-align:center}
+.a4-status.on{display:block}
+.a4-status.ok{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}
+.a4-status.err{background:#ffebee;color:#c62828;border:1px solid #ef9a9a}
 </style>
 </head>
 <body>
@@ -105,6 +146,7 @@ body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;padding-bo
     <div class="tab on" id="t1" onclick="goTab(1)">In Tem</div>
     <div class="tab"    id="t2" onclick="goTab(2)">Chỉnh Sửa</div>
     <div class="tab"    id="t3" onclick="goTab(3)">In Logo</div>
+    <div class="tab"    id="t4" onclick="goTab(4)">In A4</div>
   </div>
 </div>
 
@@ -203,6 +245,72 @@ body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;padding-bo
       </div>
       <button class="sbtn" onclick="doShareLogo()">📷 Lưu / Chia sẻ ảnh</button>
     </div>
+  </div>
+</div>
+
+<!-- TAB 4 -->
+<div class="panel" id="p4">
+  <div class="content" style="max-width:800px;margin:0 auto;padding:20px 15px">
+
+    <!-- Chọn khu -->
+    <div class="a4-wrap">
+      <div class="khu-row" style="justify-content:center;margin-bottom:4px">
+        <span class="klbl">Chọn khu:</span>
+        <button class="kbtn" id="bA4A" onclick="selKhuA4('A')">Khu A</button>
+        <button class="kbtn" id="bA4B" onclick="selKhuA4('B')">Khu B</button>
+      </div>
+    </div>
+
+    <!-- Drop zone -->
+    <div class="a4-wrap">
+      <div class="drop-zone" id="a4DropZone"
+           ondragover="a4DragOver(event)" ondragleave="a4DragLeave(event)" ondrop="a4Drop(event)"
+           onclick="ge('a4FileInput').click()">
+        <input type="file" id="a4FileInput" accept=".pdf,.doc,.docx,.odt,.png,.jpg,.jpeg,.gif,.webp,.bmp"
+               onchange="a4FileSelected(this.files[0])" onclick="event.stopPropagation()">
+        <span class="dz-icon" id="a4DzIcon">📄</span>
+        <div class="dz-text" id="a4DzText">Kéo thả hoặc nhấn để chọn file</div>
+        <div class="dz-sub">PDF · Word (DOCX) · Hình ảnh (PNG, JPG…)</div>
+      </div>
+
+      <!-- Thông tin file đã chọn -->
+      <div class="file-info" id="a4FileInfo">
+        <span class="fi-icon" id="a4FiIcon">📄</span>
+        <div class="fi-body">
+          <div class="fi-name" id="a4FiName">—</div>
+          <div class="fi-size" id="a4FiSize">—</div>
+        </div>
+        <button class="fi-clear" onclick="a4ClearFile()" title="Xóa file">✕</button>
+      </div>
+    </div>
+
+    <!-- Xem trước -->
+    <div class="a4-preview-wrap" id="a4PreviewWrap">
+      <div class="a4-wrap" style="margin-bottom:16px">
+        <h4 style="font-size:13px;color:#555;margin-bottom:8px">Xem trước:</h4>
+        <div class="a4-preview-box" id="a4PreviewBox">
+          <span class="pdf-msg">Đang tải xem trước…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Số lượng + nút in -->
+    <div class="a4-wrap">
+      <div class="ctrl">
+        <div class="a4-opts">
+          <label>Số bản:</label>
+          <div class="qc" style="border-color:#8e44ad">
+            <button class="qb" style="background:#8e44ad" onclick="dqA4(-1)">-</button>
+            <input class="qi" type="number" id="qiA4" value="1" min="1" max="99"
+                   oninput="vqA4()" onkeypress="if(event.key==='Enter')doPrintA4()">
+            <button class="qb" style="background:#8e44ad" onclick="dqA4(1)">+</button>
+          </div>
+        </div>
+        <button class="pbtn-a4" id="pbA4" onclick="doPrintA4()">🖨 IN A4</button>
+        <div class="a4-status" id="a4Status"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -761,7 +869,7 @@ function ge(id){return document.getElementById(id);}
 function sh(id){ge(id).style.display='';}
 function hd(id){ge(id).style.display='none';}
 function goTab(n){
-  [1,2,3].forEach(i=>{ge('p'+i).classList.toggle('on',i===n);ge('t'+i).classList.toggle('on',i===n);});
+  [1,2,3,4].forEach(i=>{ge('p'+i).classList.toggle('on',i===n);ge('t'+i).classList.toggle('on',i===n);});
   window.scrollTo({top:0,behavior:'smooth'});
   if(n===3) renderLogo();
 }
@@ -1012,6 +1120,174 @@ window.addEventListener('DOMContentLoaded',()=>{
     preloadLogo(LOGO_B64, function(){ render(); renderLogo(); });
   }
 });
+
+// ═══════════════════════════════════════════════════════
+//  TAB 4 — IN A4
+// ═══════════════════════════════════════════════════════
+let khuA4    = null;
+let a4File   = null;   // File object
+let a4B64    = null;   // base64 string
+const A4_MAX_MB = 20;
+
+// File type helpers
+const ICONS = { pdf:'📕', doc:'📘', docx:'📘', odt:'📘',
+                xls:'📗', xlsx:'📗', ppt:'📙', pptx:'📙',
+                png:'🖼', jpg:'🖼', jpeg:'🖼', gif:'🖼', webp:'🖼', bmp:'🖼' };
+function fileIcon(name){ return ICONS[(name.split('.').pop()||'').toLowerCase()] || '📄'; }
+function fmtSize(b){ return b<1024?b+'B':b<1048576?(b/1024).toFixed(1)+'KB':(b/1048576).toFixed(1)+'MB'; }
+
+function selKhuA4(k){
+  khuA4=k;
+  ge('bA4A').classList.toggle('on',k==='A');
+  ge('bA4B').classList.toggle('on',k==='B');
+  a4StatusClear();
+}
+function dqA4(d){ const i=ge('qiA4');i.value=Math.max(1,Math.min(99,(parseInt(i.value)||1)+d)); }
+function vqA4(){ const i=ge('qiA4');let v=parseInt(i.value);if(isNaN(v)||v<1)i.value=1;else if(v>99)i.value=99; }
+
+// Drag & drop
+function a4DragOver(e){
+  e.preventDefault(); e.stopPropagation();
+  ge('a4DropZone').classList.add('over');
+}
+function a4DragLeave(e){
+  e.preventDefault();
+  ge('a4DropZone').classList.remove('over');
+}
+function a4Drop(e){
+  e.preventDefault(); e.stopPropagation();
+  ge('a4DropZone').classList.remove('over');
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if(f) a4FileSelected(f);
+}
+function a4FileSelected(f){
+  if(!f) return;
+  // Kiểm tra dung lượng
+  if(f.size > A4_MAX_MB * 1024 * 1024){
+    a4StatusShow('Err', `File quá lớn (tối đa ${A4_MAX_MB}MB). File này: ${fmtSize(f.size)}`);
+    return;
+  }
+  a4StatusClear();
+  a4File = f;
+  const ext = (f.name.split('.').pop()||'').toLowerCase();
+  const icon = fileIcon(f.name);
+
+  // Update drop zone
+  const dz = ge('a4DropZone');
+  dz.classList.add('has-file');
+  ge('a4DzIcon').textContent = icon;
+  ge('a4DzText').textContent = 'File đã chọn — nhấn để thay';
+
+  // File info bar
+  ge('a4FiIcon').textContent = icon;
+  ge('a4FiName').textContent = f.name;
+  ge('a4FiSize').textContent = fmtSize(f.size);
+  ge('a4FileInfo').classList.add('on');
+
+  // Đọc base64 + tạo preview
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const dataUrl = ev.target.result;
+    a4B64 = dataUrl.split(',')[1];
+    a4BuildPreview(f, dataUrl, ext);
+  };
+  reader.readAsDataURL(f);
+}
+
+function a4BuildPreview(f, dataUrl, ext){
+  const wrap = ge('a4PreviewWrap');
+  const box  = ge('a4PreviewBox');
+  wrap.classList.add('on');
+
+  if(['png','jpg','jpeg','gif','webp','bmp'].includes(ext)){
+    box.innerHTML = `<img src="${dataUrl}" alt="preview">`;
+  } else if(ext==='pdf'){
+    // Embed PDF viewer nếu browser hỗ trợ
+    box.innerHTML = `<iframe src="${dataUrl}" title="PDF preview"></iframe>`;
+  } else {
+    // Word/Excel/PPT — không preview được, hiện tên file
+    box.innerHTML = `<div class="pdf-msg" style="font-size:32px;padding:30px">
+      ${fileIcon(f.name)}<br>
+      <span style="font-size:14px;color:#555;margin-top:10px;display:block">${f.name}</span>
+      <span style="font-size:12px;color:#aaa;margin-top:6px;display:block">
+        Không thể xem trước file ${ext.toUpperCase()}.<br>Server sẽ tự chuyển sang PDF khi in.
+      </span>
+    </div>`;
+  }
+}
+
+function a4ClearFile(){
+  a4File = null; a4B64 = null;
+  ge('a4DropZone').classList.remove('has-file');
+  ge('a4DzIcon').textContent = '📄';
+  ge('a4DzText').textContent = 'Kéo thả hoặc nhấn để chọn file';
+  ge('a4FileInfo').classList.remove('on');
+  ge('a4PreviewWrap').classList.remove('on');
+  ge('a4PreviewBox').innerHTML = '';
+  ge('a4FileInput').value = '';
+  a4StatusClear();
+}
+
+function a4StatusShow(type, msg){
+  const el = ge('a4Status');
+  el.className = 'a4-status on ' + (type==='ok'?'ok':'err');
+  el.textContent = msg;
+}
+function a4StatusClear(){
+  const el = ge('a4Status');
+  el.className = 'a4-status';
+  el.textContent = '';
+}
+
+async function doPrintA4(){
+  if(!khuA4){ a4StatusShow('err','Vui lòng chọn Khu A hoặc Khu B!'); return; }
+  if(!a4File||!a4B64){ a4StatusShow('err','Vui lòng chọn file cần in!'); return; }
+
+  const copies = parseInt(ge('qiA4').value)||1;
+  const btn    = ge('pbA4');
+  btn.disabled = true;
+  a4StatusClear();
+
+  // Hiện loading overlay tái sử dụng
+  rst();
+  ge('s1').innerHTML = '<span class="ico">📂</span>Đọc file';
+  ge('s2').innerHTML = '<span class="ico">📡</span>Gửi đến máy in';
+  ge('s3').innerHTML = '<span class="ico">🖨</span>Máy in xử lý';
+  ge('loadOv').classList.add('on');
+  ss('s1','ok'); ss('s2','act');
+
+  try{
+    const resp = await fetch(SRV[khuA4]+'/print_a4',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ fileBase64: a4B64, fileName: a4File.name, numCopies: copies })
+    });
+    const json = await resp.json();
+    ss('s2','ok'); ss('s3', resp.ok?'ok':'err');
+    ge('loadOv').classList.remove('on');
+    btn.disabled = false;
+
+    if(resp.ok && json.success){
+      a4StatusShow('ok', `✓ Đã gửi ${copies} bản "${a4File.name}" → Khu ${khuA4}`);
+      ge('rMsg').textContent = `Đã in ${copies} bản đến Khu ${khuA4}`;
+      ge('rOk').style.display=''; ge('rErr').style.display='none';
+    } else {
+      const msg = json.message||'Lỗi không xác định';
+      a4StatusShow('err', msg);
+      ge('eMsg').textContent = msg;
+      ge('rErr').style.display=''; ge('rOk').style.display='none';
+    }
+    ge('resOv').classList.add('on');
+  } catch(e){
+    ge('loadOv').classList.remove('on');
+    btn.disabled = false;
+    const msg = 'Lỗi kết nối: ' + (e.message||'');
+    a4StatusShow('err', msg);
+    ge('eMsg').textContent = msg;
+    ge('rErr').style.display=''; ge('rOk').style.display='none';
+    ge('resOv').classList.add('on');
+  }
+}
 </script>
 </body>
 </html>
