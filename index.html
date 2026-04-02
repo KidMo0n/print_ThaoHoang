@@ -398,10 +398,10 @@ const CH =  862;
 //   phải (PR) > trái  (PL) : bù crop phía phải
 // Sau khi xoay 90°CW: trên→phải, phải→dưới, dưới→trái, trái→trên
 // Điều chỉnh các giá trị này nếu vẫn bị lệch (mỗi đơn vị ≈ 0.085mm)
-const PT = 0;    // lề trên  = 0mm / 2mm  @ 150dpi ≈ 24px
+const PT = 0;    // lề trên  = 0mm / = 4mm @ 300dpi ≈ 47px/ 2mm  @ 150dpi ≈ 24px
 const PB = 0;   // lề dưới  = 4mm @ 300dpi ≈ 47px/ 2mm  @ 150dpi ≈ 24px
 const PL = 0;   // lề trái  = 4mm @ 300dpi ≈ 47px/ 2mm  @ 150dpi ≈ 24px
-const PR = 0;    // lề trên  = 0mm / 2mm  @ 150dpi ≈ 24px
+const PR = 47;    // lề trên  = 0mm / = 4mm @ 300dpi ≈ 47px/ 2mm  @ 150dpi ≈ 24px
 const PAD = 24;  // padding nội dung bên trong viền: 2mm
 
 const DIV_X = Math.round(CW * 0.70);   // 70% trái / 30% phải
