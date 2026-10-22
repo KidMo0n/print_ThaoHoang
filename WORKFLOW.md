@@ -32,12 +32,12 @@ Người dùng (browser)
 ```
 Frontend (Tab "In Tem")
   1. Nhận params từ AppSheet URL (tên KH, SĐT, địa chỉ, mã cây, ngày, ghi chú, tổng)
-  2. Vẽ canvas 1146×862px (landscape 97×73mm @300dpi)
+  2. Vẽ canvas KHUNG TEM 1063×827px (90×70mm @300dpi, chiều đọc tem)
      ├─ Cột trái (70%): logo + tên công ty / tên KH / SĐT / địa chỉ / vận chuyển
      └─ Cột phải (30%): Zone A: ngày / Zone B: mã cây / Zone C: ghi chú / Zone D: tổng+footer
   3. GET <khu>/config → dich_ngang_mm, dich_doc_mm (lệch giấy của khu đó)
-     Xoay 90°CW → PNG 862×1146px (portrait để in), dịch theo lệch (mm × 300/25.4 px)
-     trong hệ trục tem gốc → đúng chiều đọc tem, không phụ thuộc chiều ra giấy
+     Ghép khung vào GIỮA giấy 1146×862px (97×73mm) + dời theo lệch (mm × 300/25.4 px)
+     Xoay 90°CW → PNG 862×1146px (portrait để in) — dời trong hệ trục tem → đúng chiều đọc tem
   4. POST /in_label/print  { imageBase64, numCopies }
            │
            ▼ server.js

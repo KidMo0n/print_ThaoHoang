@@ -119,9 +119,11 @@ mục **Chỉnh lệch tem** của khu đó → bấm ← → ↑ ↓ (mỗi l�
 - Hướng tính theo **chiều đọc tem** (cầm tem đọc chữ xuôi): ngang dương = sang phải, dọc dương = xuống dưới.
 - Áp dụng cho In Tem và In Logo, đọc lại config ngay trước mỗi lần in.
   Xem trước và ảnh lưu/chia sẻ không bị dịch.
-- Tem vẽ **lề = 0** (viền sát mép khổ giấy), không bù lệch máy in trong code nữa —
-  mọi bù lệch đều qua config từng khu. Dịch bao nhiêu mm thì mép bên kia mất bấy nhiêu mm,
-  nên lệch lớn (vài mm trở lên) phải chỉnh ở máy in trước (calibrate cảm biến khe / lệnh `SHIFT`).
+- **Cơ chế:** nội dung tem vẽ trong **khung cố định 90×70 mm** (`KHUNG_W_MM`/`KHUNG_H_MM`
+  trong `index.html`). Lúc in, khung được đặt **giữa giấy 97×73 mm** rồi dời theo lệch của khu.
+  Khung không bao giờ đổi cỡ — chỉnh lệch chỉ dời nguyên khung.
+- Dời trong **±3.5 mm ngang / ±1.5 mm dọc** (khoảng trắng dư) thì không mất gì; quá thì mép
+  khung ra ngoài giấy (ô số hiện đỏ). Lệch lớn hơn phải chỉnh ở máy in (calibrate / `SHIFT`).
 
 ---
 

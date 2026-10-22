@@ -385,20 +385,30 @@ function preloadLogo(src, cb){
 }
 const FONTSB = document.fonts; // FontFaceSet để check loaded
 
-// Canvas: 97×73mm @ 300dpi — kích thước thực tế khổ giấy máy in
-// 97mm × (300/25.4) = 1146px,  73mm × (300/25.4) = 862px
-// Canvas landscape 97×73mm @300dpi = 1146×862px
-// SAU KHI XOAY 90°CW trên server → portrait 862×1146 → in trên giấy 73×97mm
-const CW = 1146;
-const CH =  862;
+// ═══ KHUNG TEM CỐ ĐỊNH TRONG KHỔ GIẤY ═══════════════════════════════
+// Tính theo chiều ĐỌC TEM (nằm ngang). Giấy thật 73×97 mm dọc = 97×73 mm ngang.
+//
+//   ┌──────────── GIẤY 97 × 73 mm ────────────┐
+//   │   ┌────── KHUNG TEM 90 × 70 mm ──────┐   │
+//   │   │  mọi thứ vẽ trong khung này       │   │   khung KHÔNG BAO GIỜ đổi cỡ
+//   │   └───────────────────────────────────┘   │
+//   └─────────────────────────────────────────────┘
+//
+// Lúc in: khung đặt GIỮA giấy, rồi dịch theo "Chỉnh lệch tem" của khu (config.json).
+// Dịch trong khoảng trống dư (±3.5 mm ngang, ±1.5 mm dọc) thì không mất gì;
+// quá khoảng đó thì phần khung lòi ra ngoài giấy bị mất.
+const MM2PX    = 300 / 25.4;                        // @300dpi
+const GIAY_W_MM = 97, GIAY_H_MM = 73;               // khổ giấy (ngang × dọc)
+const KHUNG_W_MM = 90, KHUNG_H_MM = 70;             // khung tem cố định
+const GIAY_W = Math.round(GIAY_W_MM * MM2PX);       // 1146
+const GIAY_H = Math.round(GIAY_H_MM * MM2PX);       //  862
+const CW = Math.round(KHUNG_W_MM * MM2PX);          // 1063 — canvas khung tem
+const CH = Math.round(KHUNG_H_MM * MM2PX);          //  827
+const DU_NGANG_MM = (GIAY_W_MM - KHUNG_W_MM) / 2;   // 3.5 — dịch tối đa không mất gì
+const DU_DOC_MM   = (GIAY_H_MM - KHUNG_H_MM) / 2;   // 1.5
 
-// Lề quanh viền tem = 0: viền nằm sát mép khổ giấy.
-// Máy in mỗi khu lệch khác nhau → KHÔNG bù ở đây nữa, mà chỉnh bằng
-// "Chỉnh lệch tem" trong Tab ⚙ Cài đặt (dich_ngang_mm / dich_doc_mm trong config.json khu đó).
-const PT = 0;   // lề trên
-const PB = 0;   // lề dưới
-const PL = 0;   // lề trái
-const PR = 0;   // lề phải
+// Viền tem vẽ sát mép KHUNG (không phải mép giấy) — khoảng trắng tới mép giấy do khung nhỏ hơn giấy.
+const PT = 0, PB = 0, PL = 0, PR = 0;
 const PAD = 24;  // padding nội dung bên trong viền: 2mm
 
 const DIV_X = Math.round(CW * 0.70);   // 70% trái / 30% phải
@@ -927,7 +937,7 @@ function closeRes(){document.getElementById('resOv').classList.remove('on');}
 //    dọc  : âm = LÊN TRÊN  | dương = XUỐNG DƯỚI
 //  Chỉ áp dụng lúc in — bản xem trước và ảnh lưu/chia sẻ giữ nguyên.
 // ═══════════════════════════════════════════════════════
-const PX_PER_MM = 300 / 25.4;      // canvas vẽ @300dpi
+const PX_PER_MM = MM2PX;           // canvas vẽ @300dpi
 const _lechCache = {};             // { A:{x,y}, B:{x,y} } mm — dùng khi không đọc được config
 
 // Đọc lệch mới nhất của khu ngay trước khi in (máy khác vừa chỉnh cũng ăn liền)
@@ -949,18 +959,22 @@ async function layLech(k){
   return _lechCache[k] || {x:0, y:0};
 }
 
-// Xoay 90°CW để in + dịch theo lệch (mm). Phép dịch làm SAU khi xoay hệ trục,
-// tức là dịch trong hệ trục của tem gốc → đúng chiều người đọc tem.
+// Ghép khung tem vào khổ giấy rồi xoay 90°CW để in.
+//  1. Giấy trắng GIAY_W×GIAY_H (chiều đọc tem)
+//  2. Đặt khung tem (src) vào GIỮA giấy, cộng lệch (mm) của khu
+//  3. Xoay 90°CW → portrait GIAY_H×GIAY_W, đúng khổ 73×97 mm của máy
+// Phép đặt/dịch làm SAU khi xoay hệ trục → dịch đúng chiều người đọc tem.
 function xoayChoIn(src, lech){
   const rot = document.createElement('canvas');
-  rot.width = src.height; rot.height = src.width;   // portrait: H×W
+  rot.width = GIAY_H; rot.height = GIAY_W;           // portrait: 862×1146
   const c = rot.getContext('2d');
   c.fillStyle = '#fff';
-  c.fillRect(0, 0, rot.width, rot.height);           // phần lộ ra khi dịch = trắng
-  c.translate(src.height, 0);
-  c.rotate(Math.PI / 2);
-  if(lech) c.translate((lech.x||0) * PX_PER_MM, (lech.y||0) * PX_PER_MM);
-  c.drawImage(src, 0, 0);
+  c.fillRect(0, 0, rot.width, rot.height);
+  c.translate(GIAY_H, 0);
+  c.rotate(Math.PI / 2);                             // từ đây: hệ trục giấy nằm ngang
+  const x = (GIAY_W - src.width)  / 2 + ((lech && lech.x) || 0) * PX_PER_MM;
+  const y = (GIAY_H - src.height) / 2 + ((lech && lech.y) || 0) * PX_PER_MM;
+  c.drawImage(src, Math.round(x), Math.round(y));
   return rot;
 }
 
@@ -1421,6 +1435,7 @@ async function doPrintA4(){
 #p5 .lb:active{background:#89b4fa;color:#1e1e2e;}
 #p5 .li{flex:1;min-width:0;height:40px;text-align:center;background:#313244;border:1px solid #45475a;
   color:#cdd6f4;border-radius:8px;font-size:15px;font-weight:bold;}
+#p5 .li.over{color:#f38ba8;border-color:#f38ba8;}
 #p5 .lmm{flex:0 0 28px;font-size:12px;color:#6c7086;}
 #p5 .lreset{background:none;border:none;color:#6c7086;font-size:12px;text-decoration:underline;cursor:pointer;padding:0;}
 </style>
@@ -1625,19 +1640,21 @@ function buildKhuCard(khu, cfgRes, printRes, baseUrl, mode){
     </div>
     <div style="height:8px;"></div>
     <div class="khu-title">📐 Chỉnh lệch tem Khu ${khu}</div>
-    <div class="lnote">Tem in ra bị lệch thì bấm cho nó dịch lại, cầm tem đọc chữ xuôi mà xét.
-      Mỗi lần bấm = 0.5&nbsp;mm. Nhớ bấm <b>Lưu Khu ${khu}</b>.</div>
+    <div class="lnote">Khung tem ${KHUNG_W_MM}×${KHUNG_H_MM} mm cố định, nằm giữa giấy ${GIAY_W_MM}×${GIAY_H_MM} mm.
+      Chỉnh lệch = dời nguyên khung (cầm tem đọc chữ xuôi mà xét), mỗi lần bấm 0.5&nbsp;mm.
+      Trong <b>±${DU_NGANG_MM} ngang / ±${DU_DOC_MM} dọc</b> thì không mất gì; quá thì số đỏ = mép khung ra ngoài giấy.
+      Nhớ bấm <b>Lưu Khu ${khu}</b>.</div>
     <div class="lrow">
       <span>Ngang</span>
       <button class="lb" onclick="nhichLech('${uid}','X',-0.5)">←</button>
-      <input class="li" id="${uid}LechX" type="number" step="0.5" value="${Number(cfg.dich_ngang_mm)||0}">
+      <input class="li${Math.abs(Number(cfg.dich_ngang_mm)||0)>DU_NGANG_MM?' over':''}" id="${uid}LechX" type="number" step="0.5" value="${Number(cfg.dich_ngang_mm)||0}" oninput="nhichLech('${uid}','X',0)">
       <button class="lb" onclick="nhichLech('${uid}','X',0.5)">→</button>
       <span class="lmm">mm</span>
     </div>
     <div class="lrow">
       <span>Dọc</span>
       <button class="lb" onclick="nhichLech('${uid}','Y',-0.5)">↑</button>
-      <input class="li" id="${uid}LechY" type="number" step="0.5" value="${Number(cfg.dich_doc_mm)||0}">
+      <input class="li${Math.abs(Number(cfg.dich_doc_mm)||0)>DU_DOC_MM?' over':''}" id="${uid}LechY" type="number" step="0.5" value="${Number(cfg.dich_doc_mm)||0}" oninput="nhichLech('${uid}','Y',0)">
       <button class="lb" onclick="nhichLech('${uid}','Y',0.5)">↓</button>
       <span class="lmm">mm</span>
     </div>
@@ -1705,7 +1722,8 @@ function nhichLech(uid, truc, b){
   if(!e) return;
   let v = b === null ? 0 : (parseFloat(e.value) || 0) + b;
   v = Math.max(-20, Math.min(20, Math.round(v * 10) / 10));
-  e.value = v;
+  if(b !== 0) e.value = v;                       // b = 0: chỉ kiểm tra khi gõ tay
+  e.classList.toggle('over', Math.abs(v) > (truc === 'X' ? DU_NGANG_MM : DU_DOC_MM));
   const m = ge('msg' + uid); if(m){ m.className = 'smsg'; m.textContent = ''; }
 }
 
