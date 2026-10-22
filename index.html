@@ -392,16 +392,13 @@ const FONTSB = document.fonts; // FontFaceSet để check loaded
 const CW = 1146;
 const CH =  862;
 
-// Hardware margin của XPrinter: máy bị crop phía trên và phải
-// → bù bằng padding KHÔNG ĐỀU:
-//   trên  (PT) > dưới  (PB) : bù crop phía trên
-//   phải (PR) > trái  (PL) : bù crop phía phải
-// Sau khi xoay 90°CW: trên→phải, phải→dưới, dưới→trái, trái→trên
-// Điều chỉnh các giá trị này nếu vẫn bị lệch (mỗi đơn vị ≈ 0.085mm)
-const PT = 47;    // lề trên  = 0mm / = 4mm @ 300dpi ≈ 47px/ 2mm  @ 150dpi ≈ 24px
-const PB = 0;   // lề dưới  = 4mm @ 300dpi ≈ 47px/ 2mm  @ 150dpi ≈ 24px
-const PL = 47;   // lề trái  = 4mm @ 300dpi ≈ 47px/ 2mm  @ 150dpi ≈ 24px
-const PR = 0;    // lề phải  = 0mm / = 4mm @ 300dpi ≈ 47px/ 2mm  @ 150dpi ≈ 24px
+// Lề quanh viền tem = 0: viền nằm sát mép khổ giấy.
+// Máy in mỗi khu lệch khác nhau → KHÔNG bù ở đây nữa, mà chỉnh bằng
+// "Chỉnh lệch tem" trong Tab ⚙ Cài đặt (dich_ngang_mm / dich_doc_mm trong config.json khu đó).
+const PT = 0;   // lề trên
+const PB = 0;   // lề dưới
+const PL = 0;   // lề trái
+const PR = 0;   // lề phải
 const PAD = 24;  // padding nội dung bên trong viền: 2mm
 
 const DIV_X = Math.round(CW * 0.70);   // 70% trái / 30% phải
