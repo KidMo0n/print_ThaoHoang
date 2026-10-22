@@ -14,7 +14,8 @@
  *  POST /in_a4/print          → In A4 (PDF/DOCX/IMG base64)
  *
  *  GET  /config               → Lấy config hiện tại (JSON)
- *  POST /config               → Lưu config (printer_label, printer_a4, media_label)
+ *  POST /config               → Lưu config (printer_label, printer_a4, media_label,
+ *                                 servers, dich_ngang_mm, dich_doc_mm)
  *  GET  /printers             → Danh sách máy in từ CUPS (lpstat -a)
  * └─────────────────────────────────────────────────────────┘
  *
@@ -50,6 +51,11 @@ const DEFAULT_CONFIG = {
   printer_label : IS_A ? 'XP-365B'         : 'XP-470B',
   printer_a4    : IS_A ? 'A4-Printer-KhuA' : 'A4-Printer-KhuB',
   media_label   : 'Custom.73x97mm',
+  // Chỉnh lệch tem khi in (mm) — theo chiều đọc tem.
+  //   dich_ngang_mm: âm = sang TRÁI | dương = sang PHẢI
+  //   dich_doc_mm  : âm = LÊN TRÊN  | dương = XUỐNG DƯỚI
+  dich_ngang_mm : 0,
+  dich_doc_mm   : 0,
   servers: {
     a: 'https://a_print.thangmotsach.com',
     b: 'https://b_print.thangmotsach.com'
@@ -129,9 +135,25 @@ app.get('/config', (_req, res) => {
 });
 
 // ─── /config POST ─────────────────────────────────────────────────────
+// Chỉ ghi các field có gửi lên. Lệch tem = 0 là giá trị hợp lệ.
+const LECH_MAX_MM = 20;
+function docLech(v) {
+  if (v === undefined || v === null || v === '') return undefined;
+  const n = Number(v);
+  if (!Number.isFinite(n) || Math.abs(n) > LECH_MAX_MM) return null;   // null = sai
+  return Math.round(n * 10) / 10;
+}
+
 app.post('/config', (req, res) => {
-  const { printer_label, printer_a4, media_label } = req.body || {};
-  if (!printer_label && !printer_a4 && !media_label) {
+  const { printer_label, printer_a4, media_label, servers } = req.body || {};
+  const dichNgang = docLech((req.body || {}).dich_ngang_mm);
+  const dichDoc   = docLech((req.body || {}).dich_doc_mm);
+
+  if (dichNgang === null || dichDoc === null) {
+    return res.json({ success: false, message: `Lệch tem phải là số trong khoảng ±${LECH_MAX_MM} mm` });
+  }
+  if (!printer_label && !printer_a4 && !media_label && !servers &&
+      dichNgang === undefined && dichDoc === undefined) {
     return res.json({ success: false, message: 'Không có dữ liệu cần lưu' });
   }
 
@@ -139,11 +161,18 @@ app.post('/config', (req, res) => {
   if (printer_label) CFG.printer_label = printer_label.trim();
   if (printer_a4)    CFG.printer_a4    = printer_a4.trim();
   if (media_label)   CFG.media_label   = media_label.trim();
+  if (servers && typeof servers === 'object') {
+    CFG.servers = Object.assign({}, CFG.servers);
+    if (servers.a) CFG.servers.a = String(servers.a).trim();
+    if (servers.b) CFG.servers.b = String(servers.b).trim();
+  }
+  if (dichNgang !== undefined) CFG.dich_ngang_mm = dichNgang;
+  if (dichDoc   !== undefined) CFG.dich_doc_mm   = dichDoc;
 
   try {
     saveConfig(CFG);
-    console.log(`[CONFIG] Saved: label=${CFG.printer_label} | a4=${CFG.printer_a4} | media=${CFG.media_label}`);
-    res.json({ success: true, message: 'Đã lưu cài đặt máy in', config: CFG });
+    console.log(`[CONFIG] Saved: label=${CFG.printer_label} | a4=${CFG.printer_a4} | media=${CFG.media_label} | lệch ngang=${CFG.dich_ngang_mm}mm dọc=${CFG.dich_doc_mm}mm`);
+    res.json({ success: true, message: 'Đã lưu cài đặt', config: CFG });
   } catch (e) {
     res.json({ success: false, message: 'Lỗi ghi file: ' + e.message });
   }

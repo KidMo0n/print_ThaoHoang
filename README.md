@@ -36,7 +36,8 @@ Chạy trên Raspberry Pi tại mỗi khu, kết nối ra ngoài qua Cloudflare 
 
 ```
 GET  /config                → JSON config hiện tại {khu, hostname, config}
-POST /config                → Lưu config {printer_label, printer_a4, media_label, servers}
+POST /config                → Lưu config {printer_label, printer_a4, media_label, servers,
+                                          dich_ngang_mm, dich_doc_mm}
 GET  /printers              → Danh sách máy in từ CUPS (lpstat -a)
 ```
 
@@ -98,6 +99,8 @@ Config lưu tại `config.json` cạnh `server.js`:
   "printer_label": "XP-365B",
   "printer_a4": "Canon-LBP2900",
   "media_label": "Custom.73x97mm",
+  "dich_ngang_mm": 0,
+  "dich_doc_mm": 0,
   "servers": {
     "a": "https://a_print.thangmotsach.com",
     "b": "https://b_print.thangmotsach.com"
@@ -106,6 +109,17 @@ Config lưu tại `config.json` cạnh `server.js`:
 ```
 
 > `servers` dùng để trang tổng (Cloudflare Pages) fetch cross-origin tới từng khu.
+
+### 📐 Chỉnh lệch tem theo khu
+
+Tem in ra bị lệch (do máy / cuộn giấy mỗi khu khác nhau) thì chỉnh trong Tab **⚙ Cài đặt** →
+mục **Chỉnh lệch tem** của khu đó → bấm ← → ↑ ↓ (mỗi lần 0.5 mm) → **💾 Lưu Khu X**.
+
+- Lưu vào `dich_ngang_mm` / `dich_doc_mm` trong `config.json` của server khu đó (±20 mm).
+- Hướng tính theo **chiều đọc tem** (cầm tem đọc chữ xuôi): ngang dương = sang phải, dọc dương = xuống dưới.
+- Áp dụng cho In Tem và In Logo, đọc lại config ngay trước mỗi lần in.
+  Xem trước và ảnh lưu/chia sẻ không bị dịch.
+- Dịch quá lề trắng (~4 mm) thì mép tem bên kia bị cắt.
 
 ---
 

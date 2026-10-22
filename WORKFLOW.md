@@ -35,7 +35,9 @@ Frontend (Tab "In Tem")
   2. Vẽ canvas 1146×862px (landscape 97×73mm @300dpi)
      ├─ Cột trái (70%): logo + tên công ty / tên KH / SĐT / địa chỉ / vận chuyển
      └─ Cột phải (30%): Zone A: ngày / Zone B: mã cây / Zone C: ghi chú / Zone D: tổng+footer
-  3. Xoay 90°CW → PNG 862×1146px (portrait để in)
+  3. GET <khu>/config → dich_ngang_mm, dich_doc_mm (lệch giấy của khu đó)
+     Xoay 90°CW → PNG 862×1146px (portrait để in), dịch theo lệch (mm × 300/25.4 px)
+     trong hệ trục tem gốc → đúng chiều đọc tem, không phụ thuộc chiều ra giấy
   4. POST /in_label/print  { imageBase64, numCopies }
            │
            ▼ server.js
@@ -76,7 +78,8 @@ Tab "⚙ Cài đặt"
   │   → SINGLE MODE
   │   → GET /config     → hiển thị config khu hiện tại
   │   → GET /printers   → populate dropdown từ lpstat -a
-  │   → POST /config    → lưu printer_label, printer_a4, media_label, servers
+  │   → POST /config    → lưu printer_label, printer_a4, media_label, servers,
+  │                       dich_ngang_mm, dich_doc_mm (chỉnh lệch tem)
   │
   └─ Truy cập qua domain tổng (Cloudflare Pages)
       → DUAL MODE

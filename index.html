@@ -887,14 +887,10 @@ async function doPrint(){
   try{
     ss('s1','act');
     // Xoay canvas 90°CW ngay trên frontend → server chỉ cần lp in, không cần node-canvas
-    const src = document.getElementById('cv');
-    const rot = document.createElement('canvas');
-    rot.width = src.height; rot.height = src.width;  // portrait: H×W
-    const rctx = rot.getContext('2d');
-    rctx.translate(src.height, 0);
-    rctx.rotate(Math.PI / 2);
-    rctx.drawImage(src, 0, 0);
-    const b64 = rot.toDataURL('image/png').split(',')[1];
+    // Bù lệch giấy theo config của khu đang in
+    const lech = await layLech(khu);
+    const rot  = xoayChoIn(document.getElementById('cv'), lech);
+    const b64  = rot.toDataURL('image/png').split(',')[1];
     ss('s1','ok'); ss('s2','act');
 
     const resp = await fetch(SRV[khu]+'/print',{
@@ -925,6 +921,51 @@ async function doPrint(){
   }finally{ btn.disabled=false; }
 }
 function closeRes(){document.getElementById('resOv').classList.remove('on');}
+
+// ═══════════════════════════════════════════════════════
+//  CHỈNH LỆCH TEM THEO KHU
+//  Lưu trong config.json của từng server khu (dich_ngang_mm / dich_doc_mm).
+//  Tính theo chiều ĐỌC TEM (cầm tem đọc chữ xuôi):
+//    ngang: âm = sang TRÁI | dương = sang PHẢI
+//    dọc  : âm = LÊN TRÊN  | dương = XUỐNG DƯỚI
+//  Chỉ áp dụng lúc in — bản xem trước và ảnh lưu/chia sẻ giữ nguyên.
+// ═══════════════════════════════════════════════════════
+const PX_PER_MM = 300 / 25.4;      // canvas vẽ @300dpi
+const _lechCache = {};             // { A:{x,y}, B:{x,y} } mm — dùng khi không đọc được config
+
+// Đọc lệch mới nhất của khu ngay trước khi in (máy khác vừa chỉnh cũng ăn liền)
+async function layLech(k){
+  const base = SRV[k].replace(/\/in_label\/?$/, '');
+  try{
+    const r = await fetch(base + '/config', {cache:'no-store'});
+    const t = await r.text();
+    if(!t.trim().startsWith('<')){
+      const j = JSON.parse(t);
+      if(j.success && j.config){
+        _lechCache[k] = {
+          x: Number(j.config.dich_ngang_mm) || 0,
+          y: Number(j.config.dich_doc_mm)   || 0
+        };
+      }
+    }
+  }catch(_){}
+  return _lechCache[k] || {x:0, y:0};
+}
+
+// Xoay 90°CW để in + dịch theo lệch (mm). Phép dịch làm SAU khi xoay hệ trục,
+// tức là dịch trong hệ trục của tem gốc → đúng chiều người đọc tem.
+function xoayChoIn(src, lech){
+  const rot = document.createElement('canvas');
+  rot.width = src.height; rot.height = src.width;   // portrait: H×W
+  const c = rot.getContext('2d');
+  c.fillStyle = '#fff';
+  c.fillRect(0, 0, rot.width, rot.height);           // phần lộ ra khi dịch = trắng
+  c.translate(src.height, 0);
+  c.rotate(Math.PI / 2);
+  if(lech) c.translate((lech.x||0) * PX_PER_MM, (lech.y||0) * PX_PER_MM);
+  c.drawImage(src, 0, 0);
+  return rot;
+}
 
 // ═══════════════════════════════════════════════════════
 //  UI HELPERS
@@ -1054,12 +1095,8 @@ async function doPrintLogo(){
   rst(); ge('loadOv').classList.add('on'); btn.disabled=true;
   try{
     ss('s1','act');
-    const cv=ge('cvLogo');
-    const rot=document.createElement('canvas');
-    rot.width=cv.height; rot.height=cv.width;
-    const rctx=rot.getContext('2d');
-    rctx.translate(cv.height,0); rctx.rotate(Math.PI/2);
-    rctx.drawImage(cv,0,0);
+    const lech=await layLech(khuLogo);
+    const rot=xoayChoIn(ge('cvLogo'), lech);
     const b64=rot.toDataURL('image/png').split(',')[1];
     ss('s1','ok'); ss('s2','act');
     const resp=await fetch(SRV[khuLogo]+'/print',{
@@ -1379,6 +1416,16 @@ async function doPrintA4(){
   font-size:11px;color:#89b4fa;margin-left:4px;}
 #p5 .khusep{border-top:1px solid #313244;margin:14px 0;}
 #p5 .khu-title{font-size:12px;color:#fab387;font-weight:bold;margin-bottom:10px;letter-spacing:.5px;}
+#p5 .lnote{font-size:12px;color:#6c7086;margin:-4px 0 10px;line-height:1.5;}
+#p5 .lrow{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+#p5 .lrow > span:first-child{flex:0 0 52px;font-size:13px;color:#cdd6f4;}
+#p5 .lb{flex:0 0 44px;height:40px;border-radius:8px;border:1px solid #45475a;background:#313244;
+  color:#89b4fa;font-size:20px;font-weight:bold;cursor:pointer;}
+#p5 .lb:active{background:#89b4fa;color:#1e1e2e;}
+#p5 .li{flex:1;min-width:0;height:40px;text-align:center;background:#313244;border:1px solid #45475a;
+  color:#cdd6f4;border-radius:8px;font-size:15px;font-weight:bold;}
+#p5 .lmm{flex:0 0 28px;font-size:12px;color:#6c7086;}
+#p5 .lreset{background:none;border:none;color:#6c7086;font-size:12px;text-decoration:underline;cursor:pointer;padding:0;}
 </style>
 
 <div class="panel" id="p5">
@@ -1580,6 +1627,25 @@ function buildKhuCard(khu, cfgRes, printRes, baseUrl, mode){
       <input type="text" id="${uid}InpMedia" value="${cfg.media_label||''}" placeholder="Custom.73x97mm">
     </div>
     <div style="height:8px;"></div>
+    <div class="khu-title">📐 Chỉnh lệch tem Khu ${khu}</div>
+    <div class="lnote">Tem in ra bị lệch thì bấm cho nó dịch lại, cầm tem đọc chữ xuôi mà xét.
+      Mỗi lần bấm = 0.5&nbsp;mm. Nhớ bấm <b>Lưu Khu ${khu}</b>.</div>
+    <div class="lrow">
+      <span>Ngang</span>
+      <button class="lb" onclick="nhichLech('${uid}','X',-0.5)">←</button>
+      <input class="li" id="${uid}LechX" type="number" step="0.5" value="${Number(cfg.dich_ngang_mm)||0}">
+      <button class="lb" onclick="nhichLech('${uid}','X',0.5)">→</button>
+      <span class="lmm">mm</span>
+    </div>
+    <div class="lrow">
+      <span>Dọc</span>
+      <button class="lb" onclick="nhichLech('${uid}','Y',-0.5)">↑</button>
+      <input class="li" id="${uid}LechY" type="number" step="0.5" value="${Number(cfg.dich_doc_mm)||0}">
+      <button class="lb" onclick="nhichLech('${uid}','Y',0.5)">↓</button>
+      <span class="lmm">mm</span>
+    </div>
+    <button class="lreset" onclick="nhichLech('${uid}','X',null);nhichLech('${uid}','Y',null)">Đưa về 0</button>
+    <div style="height:12px;"></div>
     <div class="khu-title">🖨 Máy in A4</div>
     <div class="srow">
       <label>Chọn từ CUPS</label>
@@ -1636,6 +1702,16 @@ async function settingsReloadKhu(khu, baseUrl){
   }
 }
 
+// ── Nhích lệch tem (±0.5 mm, null = về 0) ─────────────────────────────
+function nhichLech(uid, truc, b){
+  const e = ge(uid + 'Lech' + truc);
+  if(!e) return;
+  let v = b === null ? 0 : (parseFloat(e.value) || 0) + b;
+  v = Math.max(-20, Math.min(20, Math.round(v * 10) / 10));
+  e.value = v;
+  const m = ge('msg' + uid); if(m){ m.className = 'smsg'; m.textContent = ''; }
+}
+
 // ── Lưu 1 khu ─────────────────────────────────────────────────────────
 async function settingsSaveKhu(khu, baseUrl){
   const uid = 'khu' + khu;
@@ -1648,11 +1724,15 @@ async function settingsSaveKhu(khu, baseUrl){
   const mediaVal   = (ge(uid+'InpMedia')||{}).value?.trim() || '';
   const srvAVal    = (ge(uid+'InpSrvA')||{}).value?.trim()  || '';
   const srvBVal    = (ge(uid+'InpSrvB')||{}).value?.trim()  || '';
+  const lechX      = ge(uid+'LechX') ? parseFloat(ge(uid+'LechX').value) : NaN;
+  const lechY      = ge(uid+'LechY') ? parseFloat(ge(uid+'LechY').value) : NaN;
 
   const body = {};
   if(labelVal)  body.printer_label = labelVal;
   if(a4Val)     body.printer_a4    = a4Val;
   if(mediaVal)  body.media_label   = mediaVal;
+  if(!isNaN(lechX)) body.dich_ngang_mm = lechX;
+  if(!isNaN(lechY)) body.dich_doc_mm   = lechY;
   // Lưu servers vào config.json của server đó (để server tự biết URL của khu kia)
   if(srvAVal || srvBVal){
     body.servers = {};
