@@ -467,6 +467,24 @@ function fitSz(ctx, text, maxW, maxSz, minSz, style, font){
   return minSz;
 }
 
+// ── SĐT: cỡ chữ tối đa + khoảng giãn giữa các ký tự (tỉ lệ theo cỡ chữ) ──
+const SDT_MAX  = 72;     // px @300dpi ≈ 6 mm (trước: 50)
+const SDT_GIAN = 0.12;   // giãn 12% cỡ chữ giữa mỗi ký tự
+
+// Đo / vẽ chuỗi có giãn ký tự — vẽ từng ký tự, không phụ thuộc ctx.letterSpacing
+// (Safari/iOS cũ không hỗ trợ). Canh giữa tại cx.
+function rongGian(ctx, text, gian){
+  const ch = [...text];
+  return ch.reduce((w,c)=>w+ctx.measureText(c).width, 0) + gian*(ch.length-1);
+}
+function veGian(ctx, text, cx, y, gian){
+  const ch = [...text];
+  let x = cx - rongGian(ctx, text, gian)/2;
+  const al = ctx.textAlign; ctx.textAlign = 'left';
+  for(const c of ch){ ctx.fillText(c, x, y); x += ctx.measureText(c).width + gian; }
+  ctx.textAlign = al;
+}
+
 // Tính size lớn nhất để text vừa đúng maxLines dòng trong maxW
 function fitSzLines(ctx, text, maxW, maxLines, maxSz, minSz, weight, font){
   font = font || FONT;
@@ -597,7 +615,7 @@ function draw(canvas, d, logo){
 
   // Vùng khả dụng cho thông tin khách (trừ header và ship area)
   // phone ~60px, addr ~50px, gaps ~30px → reserve ~140px phía dưới
-  const infoReserve = (phone?65:0) + (addr?55:0) + (phone||addr?30:0);
+  const infoReserve = (phone?SDT_MAX+20:0) + (addr?55:0) + (phone||addr?30:0);
   const nameMaxB   = contentAreaB - infoReserve; // đáy tối đa cho tên
 
   let ly = logo ? T + HDR_H + PAD : T + PAD;
@@ -637,11 +655,15 @@ function draw(canvas, d, logo){
 
   // SĐT
   if(phone){
-    const sz = fitSz(ctx, phone, lw, 50, 26, 'bold');
+    // To + giãn chữ cho dễ đọc trên tem nhỏ (tự co nếu số quá dài)
+    let sz = SDT_MAX;
     ctx.font = '700 '+sz+'px '+FONT;
-    ctx.textAlign='center';
-    ctx.fillText(phone, lcx, ly);
-    ly += Math.round(sz*1.25)+10;
+    while(sz > 30 && rongGian(ctx, phone, sz*SDT_GIAN) > lw){
+      sz -= 2; ctx.font = '700 '+sz+'px '+FONT;
+    }
+    ly += Math.round(sz*0.15);                   // chừa thêm chút trên vì chữ to hơn
+    veGian(ctx, phone, lcx, ly, sz*SDT_GIAN);
+    ly += Math.round(sz*1.2)+10;
   }
 
   // Địa chỉ
